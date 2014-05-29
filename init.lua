@@ -27,7 +27,7 @@ local function generate_chunk(minp, maxp, seed, generated)
 	end
 	data = vm:get_data()
 
-	pr = PseudoRandom(seed+33)
+	--pr = PseudoRandom(seed+33)
 
 	for y = minp.y, maxp.y do
 		if y == -8 then
@@ -42,10 +42,32 @@ local function generate_chunk(minp, maxp, seed, generated)
 	vm:set_data(data)
 	vm:write_to_map()
 	if not generated then
-		manip:update_map()
+		vm:update_map()
 	end
 end
 
 minetest.register_on_generated(function(minp, maxp, seed)
 	generate_chunk(minp, maxp, seed, true)
 end)
+
+local mchunksize = 16*5
+local timer = 0
+minetest.register_globalstep(function(dtime)
+	timer = timer + dtime;
+	if timer >= 2 then
+		for _,player in pairs(minetest.get_connected_players()) do
+			local pos = vector.round(player:getpos())
+			if pos.y < -8 then
+				player:moveto({x=pos.x, y=20, z=pos.z})
+			end
+			if minetest.get_node({x=pos.x, y=-8, z=pos.z}).name ~= "pyripat:undigable" then
+				local minp = {x=pos.x-pos.x%mchunksize, y=-mchunksize, z=pos.z-pos.z%mchunksize}
+				local maxp = vector.add(minp, mchunksize-1)
+				generate_chunk(minp, maxp)
+				--minetest.chat_send_all("changing map")
+			end
+		end
+		timer = 0
+	end
+end)
+
